@@ -288,7 +288,7 @@ void DuckHunt::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods)
 	
 	if (window->MouseHold(GLFW_MOUSE_BUTTON_1))
 		if (numberOfBullets)
-			if (mouseX > duckCenter.x - 100 && mouseX < duckCenter.x + 100 && mouseY > duckCenter.y - 100 && mouseY < duckCenter.y + 100 && !duckHit && !duckEscaped)
+			if (mouseX > duckCenter.x - 100 && mouseX < duckCenter.x + 100 && mouseY > duckCenter.y - 70 && mouseY < duckCenter.y + 70 && !duckHit && !duckEscaped)
 			{
 				numberOfBullets--;
 				currentScore++;
