@@ -8,7 +8,30 @@
 
 #define VERTICAL M_PI_2
 #define DOWN M_PI
-#define INITIAL_SPEED 80
+#define INITIAL_SPEED 150
+#define INCREASE_SPEED 20
+#define ESCAPE_SPEED 200
+#define FALL_SPEED 300
+#define LIVES_MARGIN 30
+#define LIVES_DISTANCE 40
+#define BULLETS_LEFT_MARGIN 20
+#define BULLETS_UP_MARGIN 90
+#define BULLETS_DISTANCE 40
+#define CURRENTSCORE_START_RIGHT_MARGIN 225
+#define CURRENTSCORE_UP_MARGIN 76
+#define WAREFRAME_X_POSITION 230
+#define WAREFRAME_Y_POSITION 80
+#define DUCK_CENTER_RELATIVE_X 36
+#define DUCK_CENTER_RELATIVE_Y 55 
+#define DUCK_RIGHT_MARGIN 120
+#define DUCK_UP_MARGIN 100
+#define GRASS_HEIGHT 200
+#define DUCK_OX_DIMM 100
+#define DUCK_OY_DIMM 70
+#define HEAD_RADIX 65
+#define BEAK_RADIX 85
+#define RIGHT_WING_RADIX 18
+#define LEFT_WING_RADIX 22
 
 using namespace std;
 using namespace m1;
@@ -61,17 +84,6 @@ void DuckHunt::Init()
 
 	glm::vec3 corner = glm::vec3(0, 0, 0);
 
-	translateX = 0;
-	translateY = 0;
-
-	scaleX = 1;
-	scaleY = 1;
-
-	angularStep = 0;
-
-	cx = corner.x + 20;
-	cy = corner.y + 25;
-
 	Mesh* grass = object2D::CreateRectangle("grass", corner, resolution.x, 200, glm::vec3(0.4, 0.8, 0), true);
 	Mesh* life = object2D::CreateCircle("life", corner, 15, glm::vec3(1, 0, 0), true);
 	Mesh* bullet = object2D::CreateRectangle("bullet", corner, 15, 30, glm::vec3(0, 0.4, 0), true);
@@ -119,33 +131,33 @@ void DuckHunt::Update(float deltaTimeSeconds)
 	for (int i = 0; i < numberOfLives; i++)
 	{
 		modelMatrix = glm::mat3(1);
-		modelMatrix *= transform2D::Translate(30 + 40 * i, resolution.y - 30);
+		modelMatrix *= transform2D::Translate(LIVES_MARGIN + LIVES_DISTANCE * i, resolution.y - LIVES_MARGIN);
 		RenderMesh2D(meshes["life"], shaders["VertexColor"], modelMatrix);
 	}
 
 	for (int i = 0; i < numberOfBullets; i++)
 	{
 		modelMatrix = glm::mat3(1);
-		modelMatrix *= transform2D::Translate(20 + 40 * i, resolution.y - 90);
+		modelMatrix *= transform2D::Translate(BULLETS_LEFT_MARGIN + BULLETS_DISTANCE * i, resolution.y - BULLETS_UP_MARGIN);
 		RenderMesh2D(meshes["bullet"], shaders["VertexColor"], modelMatrix);
 	}
 
 	for (i = 1; i <= currentScore; i++)
 	{
 		modelMatrix = glm::mat3(1);
-		modelMatrix *= transform2D::Translate(resolution.x - 225 + (i - 1) * 4, resolution.y - 76);
+		modelMatrix *= transform2D::Translate(resolution.x - CURRENTSCORE_START_RIGHT_MARGIN + (i - 1) * 4, resolution.y - CURRENTSCORE_UP_MARGIN);
 		RenderMesh2D(meshes["currentScoreBar"], shaders["VertexColor"], modelMatrix);
 	}
 
 	modelMatrix = glm::mat3(1);
-	modelMatrix *= transform2D::Translate(resolution.x - 230, resolution.y - 80);
+	modelMatrix *= transform2D::Translate(resolution.x - WAREFRAME_X_POSITION, resolution.y - WAREFRAME_Y_POSITION);
 	RenderMesh2D(meshes["wireframe"], shaders["VertexColor"], modelMatrix);
 
 	if (!duckHit && !duckEscaped && numberOfLives)
 	{
-		duckPosition.x += directionSign.x * deltaTimeSeconds * (INITIAL_SPEED + level * 20);
-		duckPosition.y += directionSign.y * deltaTimeSeconds * (INITIAL_SPEED + level * 20);
-		duckCenter = duckPosition + glm::vec2(36, 55);
+		duckPosition.x += directionSign.x * deltaTimeSeconds * (INITIAL_SPEED + level * INCREASE_SPEED);
+		duckPosition.y += directionSign.y * deltaTimeSeconds * (INITIAL_SPEED + level * INCREASE_SPEED);
+		duckCenter = duckPosition + glm::vec2(DUCK_CENTER_RELATIVE_X, DUCK_CENTER_RELATIVE_Y);
 
 		if (directionSign.x == 1)
 			if (directionSign.y == 1)
@@ -158,14 +170,14 @@ void DuckHunt::Update(float deltaTimeSeconds)
 			else
 				duckAngle = 2;
 
-		if (duckPosition.x + 120 >= resolution.x)
+		if (duckPosition.x + DUCK_RIGHT_MARGIN >= resolution.x)
 			directionSign.x = -1;
-		if (duckPosition.y + 100 >= resolution.y)
+		if (duckPosition.y + DUCK_UP_MARGIN >= resolution.y)
 			directionSign.y = -1;
 
 		if (duckPosition.x <= 0)
 			directionSign.x = 1;
-		if (duckPosition.y <= 200)
+		if (duckPosition.y <= GRASS_HEIGHT)
 			directionSign.y = 1;
 
 		wingRotation += wingAngleSign * 2 * deltaTimeSeconds;
@@ -174,10 +186,10 @@ void DuckHunt::Update(float deltaTimeSeconds)
 		if (wingRotation <= 0)
 			wingAngleSign = 1;
 
-		if(duckCenter.y > 200)
+		if(duckCenter.y > GRASS_HEIGHT)
 			duckDisplayedTime += deltaTimeSeconds;
 
-		if (duckDisplayedTime >= 10 || numberOfBullets == 0)
+		if (duckDisplayedTime >= 5 || numberOfBullets == 0)
 		{
 			duckEscaped = true;
 			numberOfLives--;
@@ -189,18 +201,19 @@ void DuckHunt::Update(float deltaTimeSeconds)
 		wingRotation = 0;
 		duckAngle = DOWN;
 		if(duckPosition.y >= 0)
-			duckPosition.y += -1 * deltaTimeSeconds * (INITIAL_SPEED + level * 20);
+			duckPosition.y += -1 * deltaTimeSeconds * (FALL_SPEED + level * INCREASE_SPEED);
 		else
 		{
 			duckNotDisplayedTime += deltaTimeSeconds;
-			if (duckNotDisplayedTime >= 3)
+			if (duckNotDisplayedTime >= 1)
 			{
 				duckHit = false;
 				numberOfBullets = 3;
 				duckNotDisplayedTime = 0;
+				duckDisplayedTime = 0;
 			}
 		}
-		duckCenter = duckPosition + glm::vec2(36, 55);
+		duckCenter = duckPosition + glm::vec2(DUCK_CENTER_RELATIVE_X, DUCK_CENTER_RELATIVE_Y);
 	}
 
 	if(duckEscaped)
@@ -208,8 +221,8 @@ void DuckHunt::Update(float deltaTimeSeconds)
 		duckAngle = 0;
 		if (duckPosition.y < resolution.y)
 		{
-			duckPosition.y += deltaTimeSeconds * (INITIAL_SPEED + level * 20);
-			duckCenter = duckPosition + glm::vec2(36, 55);
+			duckPosition.y += deltaTimeSeconds * (ESCAPE_SPEED + level * INCREASE_SPEED);
+			duckCenter = duckPosition + glm::vec2(DUCK_CENTER_RELATIVE_X, DUCK_CENTER_RELATIVE_Y);
 			wingRotation += wingAngleSign * 2 * deltaTimeSeconds;
 			if (wingRotation >= 1.2)
 				wingAngleSign = -1;
@@ -219,24 +232,25 @@ void DuckHunt::Update(float deltaTimeSeconds)
 		else
 		{
 			duckNotDisplayedTime += deltaTimeSeconds;
-			if (duckNotDisplayedTime >= 3)
+			if (duckNotDisplayedTime >= 1)
 			{
 				duckEscaped = false;
 				if(numberOfLives)
 					numberOfBullets = 3;
 				duckNotDisplayedTime = 0;
 				duckDisplayedTime = 0;
+				duckPosition.y = 0;
 			}
 		}
 	}
 
 	// Duck elements
 	modelMatrix = glm::mat3(1);
-	modelMatrix *= transform2D::Translate(duckCenter.x + 65 * cos(VERTICAL + duckAngle), duckCenter.y + 65 * sin(VERTICAL + duckAngle));
+	modelMatrix *= transform2D::Translate(duckCenter.x + HEAD_RADIX * cos(VERTICAL + duckAngle), duckCenter.y + HEAD_RADIX * sin(VERTICAL + duckAngle));
 	RenderMesh2D(meshes["duckHead"], shaders["VertexColor"], modelMatrix);
 
 	modelMatrix = glm::mat3(1);
-	modelMatrix *= transform2D::Translate(duckCenter.x + 85 * cos(VERTICAL + duckAngle), duckCenter.y + 85 * sin(VERTICAL + duckAngle));
+	modelMatrix *= transform2D::Translate(duckCenter.x + BEAK_RADIX * cos(VERTICAL + duckAngle), duckCenter.y + BEAK_RADIX * sin(VERTICAL + duckAngle));
 	modelMatrix *= transform2D::Translate(0, 0) * transform2D::Rotate(duckAngle) * transform2D::Translate(0, 0);
 	RenderMesh2D(meshes["duckBeak"], shaders["VertexColor"], modelMatrix);
 
@@ -246,12 +260,12 @@ void DuckHunt::Update(float deltaTimeSeconds)
 	RenderMesh2D(meshes["duckBody"], shaders["VertexColor"], modelMatrix);
 	
 	modelMatrix = glm::mat3(1);
-	modelMatrix *= transform2D::Translate(duckCenter.x + 18 * cos(duckAngle), duckCenter.y + 18 * sin(duckAngle));
+	modelMatrix *= transform2D::Translate(duckCenter.x + RIGHT_WING_RADIX * cos(duckAngle), duckCenter.y + RIGHT_WING_RADIX * sin(duckAngle));
 	modelMatrix *= transform2D::Translate(duckWingTranslate.x, duckWingTranslate.y) * transform2D::Rotate(duckAngle - wingAngle - wingRotation) * transform2D::Translate(-duckWingTranslate.x, -duckWingTranslate.y);
 	RenderMesh2D(meshes["duckRightWing"], shaders["VertexColor"], modelMatrix);
 
 	modelMatrix = glm::mat3(1);
-	modelMatrix *= transform2D::Translate(duckCenter.x + 22 * cos(duckAngle + M_PI), duckCenter.y + 22 * sin(duckAngle + M_PI));
+	modelMatrix *= transform2D::Translate(duckCenter.x + LEFT_WING_RADIX * cos(duckAngle + M_PI), duckCenter.y + LEFT_WING_RADIX * sin(duckAngle + M_PI));
 	modelMatrix *= transform2D::Translate(duckWingTranslate.x, duckWingTranslate.y) * transform2D::Rotate(duckAngle + wingAngle + wingRotation) * transform2D::Translate(-duckWingTranslate.x, -duckWingTranslate.y);
 	RenderMesh2D(meshes["duckLeftWing"], shaders["VertexColor"], modelMatrix);
 }
@@ -288,7 +302,7 @@ void DuckHunt::OnMouseBtnPress(int mouseX, int mouseY, int button, int mods)
 	
 	if (window->MouseHold(GLFW_MOUSE_BUTTON_1))
 		if (numberOfBullets)
-			if (mouseX > duckCenter.x - 100 && mouseX < duckCenter.x + 100 && mouseY > duckCenter.y - 70 && mouseY < duckCenter.y + 70 && !duckHit && !duckEscaped)
+			if (mouseX > duckCenter.x - DUCK_OX_DIMM && mouseX < duckCenter.x + DUCK_OX_DIMM && mouseY > duckCenter.y - DUCK_OY_DIMM && mouseY < duckCenter.y + DUCK_OY_DIMM && !duckHit && !duckEscaped)
 			{
 				numberOfBullets--;
 				currentScore++;
